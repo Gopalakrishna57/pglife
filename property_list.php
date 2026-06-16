@@ -8,40 +8,13 @@ $city_name = isset($_GET['city']) ? trim($_GET['city']) : '';
 $gender = isset($_GET['gender']) ? $_GET['gender'] : 'all';
 $sort = isset($_GET['sort']) ? $_GET['sort'] : 'none';
 
-// 1. Map city names to their exact database numeric IDs
+// 1. Base query - Fetch everything safely
+$sql = "SELECT * FROM properties WHERE 1=1";
 
-$target_city_id = 0;
-if (strcasecmp($city_name, 'Hyderabad') === 0) {
-    $target_city_id = 1;
-} elseif (strcasecmp($city_name, 'Bengaluru') === 0) {
-    $target_city_id = 2;
-} elseif (strcasecmp($city_name, 'Mumbai') === 0) {
-    $target_city_id = 3;
-} elseif (strcasecmp($city_name, 'Delhi') === 0) {
-    $target_city_id = 4;
-} elseif (strcasecmp($city_name, 'Chennai') === 0) {
-    $target_city_id = 5;
-} elseif (strcasecmp($city_name, 'Kolkata') === 0) {
-    $target_city_id = 6;
-} elseif (strcasecmp($city_name, 'Visakhapatnam') === 0 || strcasecmp($city_name, 'visakapatanam') === 0) {
-    $target_city_id = 7;
-} elseif (strcasecmp($city_name, 'Vijayawada') === 0) {
-    $target_city_id = 8;
-}
-
-
-if (!empty($city_name)) {
-    $sql = "SELECT * FROM properties WHERE city_id = '$target_city_id'";
-} else {
-    $sql = "SELECT * FROM properties WHERE 1=1";
-}
-
-// Gender filter
 if ($gender != 'all') {
     $sql = $sql . " AND gender = '$gender'";
 }
 
-// Price sorting
 if ($sort == 'desc') {
     $sql = $sql . " ORDER BY rent DESC";
 } elseif ($sort == 'asc') {
@@ -85,6 +58,17 @@ if (!$result) {
             <?php 
             $has_properties = false;
             while ($property = mysqli_fetch_assoc($result)) {
+                
+                // 2. PERFECT STRIPPED FILTER: Checks if the clicked city name exists inside the property's address string
+                if (!empty($city_name)) {
+                    $address_text = isset($property['address']) ? (string)$property['address'] : '';
+                    
+                    // If the city name (e.g., 'Chennai') is NOT found in the address, skip this property card!
+                    if (stripos($address_text, $city_name) === false) {
+                        continue;
+                    }
+                }
+                
                 $has_properties = true;
             ?>
                 <div class="col-12">
