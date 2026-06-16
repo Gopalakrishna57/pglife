@@ -1,33 +1,30 @@
 <?php
-require("db_connect.php"); // Connects to database directly from main folder
+require("../includes/db_connect.php");
 
-// Capture data from POST request
 $full_name = $_POST['full_name'];
 $phone = $_POST['phone'];
 $email = $_POST['email'];
 $password = $_POST['password'];
-$college_name = $_POST['college_name'];
+$password = password_hash($password, PASSWORD_BCRYPT);
 $gender = $_POST['gender'];
-
-// Encrypt password using SHA256 secure hash
-$password = hash("sha256", $password);
-// Check if user email already exists in our records
+$college_name = $_POST['college_name'];
 $sql = "SELECT * FROM users WHERE email='$email'";
 $result = mysqli_query($conn, $sql);
-
-if (mysqli_num_rows($result) > 0) {
-    echo "<script>alert('This email is already registered! Try logging in.'); window.location.href='index.php';</script>";
+if (!$result) {
+    echo "Something went wrong!";
     exit;
 }
-
-// Insert new user entry into database table
+$row_count = mysqli_num_rows($result);
+if ($row_count > 0) {
+    echo "This email id is already registered with us!";
+    exit;
+}
 $sql = "INSERT INTO users (email, password, full_name, phone, gender, college_name) VALUES ('$email', '$password', '$full_name', '$phone', '$gender', '$college_name')";
 $result = mysqli_query($conn, $sql);
-
 if (!$result) {
-    echo "Something went wrong: " . mysqli_error($conn);
+    echo "Something went wrong!";
     exit;
 }
 
-echo "<script>alert('Your account has been created successfully!'); window.location.href='index.php';</script>";
+echo "Your account has been created successfully!";
 ?>
