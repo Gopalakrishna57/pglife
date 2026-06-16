@@ -4,15 +4,44 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require("db_connect.php");
 
+$city_name = isset($_GET['city']) ? trim($_GET['city']) : '';
 $gender = isset($_GET['gender']) ? $_GET['gender'] : 'all';
 $sort = isset($_GET['sort']) ? $_GET['sort'] : 'none';
 
-$sql = "SELECT * FROM properties WHERE 1=1";
+// 1. Map city names to their exact database numeric IDs
 
+$target_city_id = 0;
+if (strcasecmp($city_name, 'Hyderabad') === 0) {
+    $target_city_id = 1;
+} elseif (strcasecmp($city_name, 'Bengaluru') === 0) {
+    $target_city_id = 2;
+} elseif (strcasecmp($city_name, 'Mumbai') === 0) {
+    $target_city_id = 3;
+} elseif (strcasecmp($city_name, 'Delhi') === 0) {
+    $target_city_id = 4;
+} elseif (strcasecmp($city_name, 'Chennai') === 0) {
+    $target_city_id = 5;
+} elseif (strcasecmp($city_name, 'Kolkata') === 0) {
+    $target_city_id = 6;
+} elseif (strcasecmp($city_name, 'Visakhapatnam') === 0 || strcasecmp($city_name, 'visakapatanam') === 0) {
+    $target_city_id = 7;
+} elseif (strcasecmp($city_name, 'Vijayawada') === 0) {
+    $target_city_id = 8;
+}
+
+
+if (!empty($city_name)) {
+    $sql = "SELECT * FROM properties WHERE city_id = '$target_city_id'";
+} else {
+    $sql = "SELECT * FROM properties WHERE 1=1";
+}
+
+// Gender filter
 if ($gender != 'all') {
     $sql = $sql . " AND gender = '$gender'";
 }
 
+// Price sorting
 if ($sort == 'desc') {
     $sql = $sql . " ORDER BY rent DESC";
 } elseif ($sort == 'asc') {
@@ -39,37 +68,39 @@ if (!$result) {
     <?php include("header.php"); ?>
 
     <div class="container my-5">
-        <h2 class="mb-4 fw-bold text-dark">Available Properties</h2>
+        <h2 class="mb-4 fw-bold text-dark">Available Properties in <?= htmlspecialchars($city_name); ?></h2>
 
         <div class="mb-4 d-flex gap-2 flex-wrap">
-            <a href="property_list.php?gender=all&sort=<?= $sort; ?>" class="btn <?= $gender=='all' ? 'btn-dark' : 'btn-outline-dark'; ?>">All Genders</a>
-            <a href="property_list.php?gender=Boys&sort=<?= $sort; ?>" class="btn <?= $gender=='Boys' ? 'btn-primary' : 'btn-outline-primary'; ?>">Boys Only</a>
-            <a href="property_list.php?gender=Girls&sort=<?= $sort; ?>" class="btn <?= $gender=='Girls' ? 'btn-danger' : 'btn-outline-danger'; ?>">Girls Only</a>
+            <a href="property_list.php?city=<?= urlencode($city_name); ?>&gender=all&sort=<?= $sort; ?>" class="btn <?= $gender=='all' ? 'btn-dark' : 'btn-outline-dark'; ?>">All Genders</a>
+            <a href="property_list.php?city=<?= urlencode($city_name); ?>&gender=Boys&sort=<?= $sort; ?>" class="btn <?= $gender=='Boys' ? 'btn-primary' : 'btn-outline-primary'; ?>">Boys Only</a>
+            <a href="property_list.php?city=<?= urlencode($city_name); ?>&gender=Girls&sort=<?= $sort; ?>" class="btn <?= $gender=='Girls' ? 'btn-danger' : 'btn-outline-danger'; ?>">Girls Only</a>
             
             <span class="ms-auto"></span>
             
-            <a href="property_list.php?gender=<?= $gender; ?>&sort=asc" class="btn <?= $sort=='asc' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'; ?>">Rent: Low to High</a>
-            <a href="property_list.php?gender=<?= $gender; ?>&sort=desc" class="btn <?= $sort=='desc' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'; ?>">Rent: High to Low</a>
+            <a href="property_list.php?city=<?= urlencode($city_name); ?>&gender=<?= $gender; ?>&sort=asc" class="btn <?= $sort=='asc' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'; ?>">Rent: Low to High</a>
+            <a href="property_list.php?city=<?= urlencode($city_name); ?>&gender=<?= $gender; ?>&sort=desc" class="btn <?= $sort=='desc' ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'; ?>">Rent: High to Low</a>
         </div>
 
         <div class="row g-4">
-            <?php while($property = mysqli_fetch_assoc($result)) { ?>
+            <?php 
+            $has_properties = false;
+            while ($property = mysqli_fetch_assoc($result)) {
+                $has_properties = true;
+            ?>
                 <div class="col-12">
                     <div class="card shadow-sm border-0 rounded-3 p-3">
-                        <div class="row g-0 align-items-center">
+                        <div class="row g-0 align-items-center"> 
                             <div class="col-md-4">
                                 <?php 
-                                // Beautiful Live Luxury PG Images array from internet
                                 $live_images = [
-                                    "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&auto=format&fit=crop&q=60", // Luxury Room 1
-                                    "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=500&auto=format&fit=crop&q=60", // Luxury Room 2
-                                    "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&auto=format&fit=crop&q=60", // Luxury Room 3
-                                    "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=500&auto=format&fit=crop&q=60", // Luxury Room 4
-                                    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&auto=format&fit=crop&q=60", // Luxury Room 5
-                                    "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=500&auto=format&fit=crop&q=60"  // Luxury Room 6
+                                    "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&auto=format&fit=crop&q=60",
+                                    "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=500&auto=format&fit=crop&q=60",
+                                    "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&auto=format&fit=crop&q=60",
+                                    "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=500&auto=format&fit=crop&q=60",
+                                    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&auto=format&fit=crop&q=60",
+                                    "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=500&auto=format&fit=crop&q=60"  
                                 ];
 
-                                // Dynamically pick an image based on Property ID so every PG gets a different photo
                                 $image_index = $property['id'] % count($live_images);
                                 $final_image = $live_images[$image_index];
                                 ?>
@@ -106,7 +137,11 @@ if (!$result) {
                         </div>
                     </div>
                 </div>
-            <?php } ?>
+            <?php } 
+            if (!$has_properties) {
+                echo '<div class="col-12 text-center my-5"><h4 class="text-muted">No properties found matching your selection.</h4></div>';
+            }
+            ?>
         </div>
     </div>
 
